@@ -31,9 +31,10 @@ go build -o tidb-ai-mcp
 
 To use this MCP server with Cursor:
 
-1. Start the server: `go run main.go`
-2. In Cursor, configure the MCP server URL to `http://localhost:8080/sse` (or your custom port)
-3. You can now ask questions to TiDB AI directly from Cursor
+1. Build the server: `go build -o tidb-ai-mcp`
+2. In Cursor, configure the MCP server as a stdio tool by adding it to your Cursor settings
+3. Specify the path to the `tidb-ai-mcp` binary in your Cursor configuration
+4. You can now ask questions to TiDB AI directly from Cursor using the stdio transport
 
 ## License
 
