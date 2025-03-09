@@ -3,23 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
-	stdhttp "net/http"
-	"strings"
+	"net/http"
 	"time"
 
 	mcp_golang "github.com/metoro-io/mcp-golang"
-	"github.com/metoro-io/mcp-golang/transport/http"
 	"github.com/metoro-io/mcp-golang/transport/stdio"
-)
-
-// Configuration
-const (
-	defaultPort = 8080
-	sseEndpoint = "/sse"
 )
 
 // TiDB AI API response structure
@@ -47,7 +38,7 @@ func askQuestion(question string) (string, error) {
 	}
 
 	// Create HTTP request
-	req, err := stdhttp.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %v", err)
 	}
@@ -57,7 +48,7 @@ func askQuestion(question string) (string, error) {
 	req.Header.Set("accept", "application/json")
 
 	// Send request
-	client := &stdhttp.Client{
+	client := &http.Client{
 		Timeout: 5 * time.Minute, // Set a 5-minute timeout to prevent hanging
 	}
 	resp, err := client.Do(req)
@@ -108,60 +99,22 @@ func registerTools(server *mcp_golang.Server) error {
 }
 
 func main() {
-	// Define command-line flags
-	port := flag.Int("port", defaultPort, "Port to listen on for SSE transport")
-	transport := flag.String("transport", "sse", "Transport type: 'sse' or 'stdio'")
-	flag.Parse()
+	done := make(chan struct{})
+	// Create a new server with nil transport (will use stdio)
+	server := mcp_golang.NewServer(stdio.NewStdioServerTransport(),
+		mcp_golang.WithName("TiDB AI"),
+		mcp_golang.WithVersion("1.0.0"),
+	)
 
-	var server *mcp_golang.Server
-
-	// Convert transport to lowercase for case-insensitive comparison
-	transportType := strings.ToLower(*transport)
-
-	if transportType == "stdio" {
-		done := make(chan struct{})
-		// Create a stdio transport
-		stdioTransport := stdio.NewStdioServerTransport()
-
-		// Create a new server with the stdio transport
-		server = mcp_golang.NewServer(stdioTransport,
-			mcp_golang.WithName("TiDB AI"),
-			mcp_golang.WithVersion("1.0.0"),
-		)
-
-		// Register tools
-		if err := registerTools(server); err != nil {
-			log.Fatalf("Error registering tools: %v", err)
-		}
-
-		// Start the server with stdio transport
-		log.Printf("Starting TiDB AI MCP server with stdio transport")
-		if err := server.Serve(); err != nil {
-			log.Fatalf("Error starting server: %v", err)
-		}
-		<-done
-	} else if transportType == "sse" {
-		// Create an HTTP transport for SSE
-		addr := fmt.Sprintf(":%d", *port)
-		sseTransport := http.NewHTTPTransport(sseEndpoint).WithAddr(addr)
-
-		// Create a new server with the transport
-		server = mcp_golang.NewServer(sseTransport,
-			mcp_golang.WithName("TiDB AI"),
-			mcp_golang.WithVersion("1.0.0"),
-		)
-
-		// Register tools
-		if err := registerTools(server); err != nil {
-			log.Fatalf("Error registering tools: %v", err)
-		}
-
-		// Start the server with SSE transport
-		log.Printf("Starting SSE MCP server on %s with endpoint %s", addr, sseEndpoint)
-		if err := server.Serve(); err != nil {
-			log.Fatalf("Error starting server: %v", err)
-		}
-	} else {
-		log.Fatalf("Unsupported transport type: %s. Use 'sse' or 'stdio'", transportType)
+	// Register tools
+	if err := registerTools(server); err != nil {
+		log.Fatalf("Error registering tools: %v", err)
 	}
+
+	// Start the server with stdio transport
+	log.Printf("Starting TiDB AI MCP server with stdio transport")
+	if err := server.Serve(); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
+	<-done
 }

@@ -4,9 +4,9 @@ A Model Control Protocol (MCP) server that allows Cursor to ask questions to TiD
 
 ## Features
 
-- Server-Sent Events (SSE) transport for MCP protocol
-- Integration with TiDB AI for answering questions
-- Simple and lightweight implementation
+- Allows Cursor to ask questions to TiDB AI
+- Uses stdio transport for communication with Cursor
+- Simple command-line interface
 
 ## Installation
 
@@ -16,28 +16,16 @@ go get github.com/siddontang/tidb-ai-mcp
 
 ## Usage
 
-The server supports a command-line argument to configure the port:
-
 ```bash
-# Show help
-go run main.go -h
-
-# Available options:
-# -port int
-#   Port to listen on for SSE transport (default 8080)
+# Run the server with stdio transport
+./tidb-ai-mcp
 ```
 
-### Running the Server
+## Building
 
 ```bash
-# Start the MCP server with default settings
-go run main.go
-
-# Specify a custom port
-go run main.go -port 9000
+go build -o tidb-ai-mcp
 ```
-
-The server will listen on the specified port with the endpoint `/sse`. By default, it listens on port 8080.
 
 ## Using with Cursor
 
