@@ -1,6 +1,8 @@
 module github.com/siddontang/tidb-ai-mcp
 
-go 1.21
+go 1.23
+
+toolchain go1.23.7
 
 require github.com/metoro-io/mcp-golang v0.8.0
 
